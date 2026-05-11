@@ -1,65 +1,307 @@
-import { useState, useEffect } from "react"
-import { Brain, Zap, Target, Sparkles, BarChart3, Trophy, Home, BookOpen, Calculator, List, Bot } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Zap, Target, Home, Calculator, List, Bot } from "lucide-react"
 import "./App.css"
 
+// ─── GROUNDING KNOWLEDGE BASE ─────────────────────────────────────────────────
+const KNOWLEDGE_BASE = `
+PROPERTY OWNERSHIP:
+- Fee Simple Absolute: highest form of ownership; full control, no conditions; can sell, lease, or will freely.
+- Fee Simple Defeasible: ownership that can be lost if a specified condition is violated.
+- Life Estate: ownership for the duration of a person's life. Life tenant cannot waste the property. Remainderman receives it after.
+- Leasehold Estate: tenant's right to possess for a set time. Types: estate for years, periodic tenancy, tenancy at will, tenancy at sufferance.
+- Joint Tenancy: co-ownership WITH right of survivorship. Requires 4 unities (TTIP): Time, Title, Interest, Possession. Deceased owner's share passes automatically to survivors — bypasses probate.
+- Tenancy in Common: co-ownership WITHOUT survivorship. Each owner holds an undivided interest they can sell or will separately. Unequal shares are allowed.
+- Tenancy by the Entirety: married couples only; neither spouse can sell without the other's consent.
+- Community Property: in 9 states (AZ, CA, ID, LA, NV, NM, TX, WA, WI), most property acquired during marriage is owned 50/50.
+- Severalty: owned by one person alone.
+- Condominium: fee simple title to unit + undivided interest in common areas.
+- Co-op: residents own shares in the corporation that owns the building; no deed for the individual unit — only a proprietary lease.
+- MARIA test determines if personal property is a fixture: Method of attachment, Adaptability, Relationship of parties, Intention, Agreement.
+
+ENCUMBRANCES & LIENS:
+- Specific lien: affects one parcel (mortgage, mechanic's lien, property tax lien).
+- General lien: affects all property of a debtor (judgment lien, IRS tax lien).
+- Voluntary lien: created by owner (mortgage). Involuntary lien: created by law without owner's consent (tax lien, mechanic's lien).
+- Lien priority: generally first in time, first in right. Property taxes always have the highest priority regardless of recording date.
+- Mechanic's lien: filed by unpaid contractors or suppliers; must be filed within a statutory period.
+- Lis pendens: recorded notice that a lawsuit is pending affecting the property.
+- Easement appurtenant: benefits one parcel (dominant tenement) at expense of an adjacent parcel (servient tenement); runs with the land.
+- Easement in gross: benefits a person or company, not adjacent land (e.g., utility easements). Does NOT run with the land.
+- Easement by prescription: acquired by open, notorious, hostile, and continuous use for the statutory period.
+- Easement by necessity: granted when a property is landlocked.
+- License: personal, revocable right to use another's land; NOT an easement.
+- Encroachment: a structure physically invades another's property.
+- Deed restriction (restrictive covenant): a private limitation on land use recorded in the deed or plat.
+
+LEGAL DESCRIPTIONS:
+- Metes and Bounds: compass bearings and distances from a Point of Beginning (POB); oldest method.
+- Rectangular (Government) Survey: divides land into townships (6-mile square = 36 sections). One section = 640 acres = 1 square mile.
+- Lot and Block (Recorded Plat): refers to a recorded subdivision map; most common for residential properties.
+- 1 acre = 43,560 sq ft. 1 section = 640 acres. 1 township = 36 sections = 36 square miles.
+
+CONTRACTS:
+- Essential elements: Offer, Acceptance, Consideration, Capacity, Legal Purpose.
+- Void: no legal effect from the start (illegal purpose). Voidable: one party may rescind (minor, duress, fraud). Unenforceable: valid but can't be enforced in court (oral real estate contract).
+- Statute of Frauds: real estate contracts must be in writing to be enforceable.
+- Bilateral: both parties make promises (purchase agreement). Unilateral: only one party makes a promise (option contract, open listing).
+- Executory: not yet fully performed. Executed: fully performed by both parties.
+- Specific performance: court orders completion because each parcel of land is unique.
+- Liquidated damages: pre-agreed amount if a party breaches (often the earnest money deposit).
+- Novation: substituting a new party for an original party, releasing the original from liability.
+- Contingency: condition that must occur before the contract is binding (financing, inspection, appraisal).
+- Time is of the essence: deadlines in the contract are strictly enforced.
+- Earnest money: good-faith deposit by buyer; held in escrow; not required for a valid contract but customary.
+
+AGENCY:
+- Listing agent represents the seller. Buyer's agent represents the buyer.
+- Dual agency: one agent or brokerage represents both parties; requires informed written consent from both.
+- Designated agency: different agents within the same firm represent each party separately.
+- Sub-agent: works with the buyer but owes fiduciary duty to the seller.
+- FIDUCIARY DUTIES — OLD CAR: Obedience, Loyalty, Disclosure, Confidentiality (survives the agency relationship), Accounting, Reasonable Care.
+- Material fact: any fact that would affect a reasonable person's decision to buy, sell, or lease.
+- Puffing: non-factual, subjective praise; not illegal but must not cross into false statements of fact.
+- Misrepresentation: false statement of a material fact. Intentional = fraud.
+- Exclusive Right to Sell: broker earns commission regardless of who sells; most common listing type.
+- Exclusive Agency: owner can sell without owing commission; only one broker authorized.
+- Open Listing: multiple brokers; only the procuring broker earns commission; unilateral contract.
+- Net Listing: broker keeps everything above a set net price; legal in some states but widely discouraged.
+- Commingling: illegally mixing client funds with broker's personal/business funds.
+- Conversion: illegally using client funds for personal use.
+
+FAIR HOUSING:
+- Federal Fair Housing Act (1968, amended 1988): 7 protected classes: Race, Color, Religion, National Origin, Sex, Familial Status, Disability.
+- Familial status: households with children under 18, pregnant women, persons in process of securing custody.
+- Disability: landlord must allow reasonable modifications at tenant's expense and provide reasonable accommodations.
+- Exemptions (narrow): owner-occupied buildings with 4 or fewer units (Mrs. Murphy), single-family homes sold without a broker, qualified 55+/62+ senior housing.
+- Steering: directing buyers or renters toward or away from areas based on a protected class.
+- Blockbusting (panic peddling): inducing owners to sell by suggesting a protected class is moving into the neighborhood.
+- Redlining: refusing loans, insurance, or services in geographic areas based on race or ethnicity.
+- Civil Rights Act of 1866: prohibits discrimination based on RACE ONLY; has absolutely NO exemptions.
+- Jones v. Mayer (1968): Supreme Court upheld the 1866 Act's prohibition on racial discrimination.
+- File HUD complaint within 1 year; federal court lawsuit within 2 years.
+- ADA: applies to commercial properties and public accommodations; requires accessible design.
+- ECOA (Regulation B): prohibits credit discrimination based on race, color, religion, national origin, sex, marital status, age.
+
+FINANCING:
+- Mortgagor = borrower. Mortgagee = lender.
+- Deed of Trust: 3 parties — trustor (borrower), beneficiary (lender), and a neutral trustee who holds legal title.
+- Promissory note: the personal promise to repay the debt. Mortgage/deed of trust = the security instrument.
+- Conventional loan: not insured or guaranteed by the government.
+- FHA loan: insured by FHA; 3.5% minimum down; requires MIP (Mortgage Insurance Premium).
+- VA loan: guaranteed by the Dept. of Veterans Affairs; no down payment for eligible veterans; no PMI but requires a funding fee.
+- PMI: protects the LENDER when LTV exceeds 80% on conventional loans.
+- Fixed-rate mortgage: interest rate stays the same for the life of the loan.
+- ARM: rate changes periodically based on an index; has initial, periodic, and lifetime caps.
+- Balloon mortgage: smaller regular payments with a large lump sum due at the end.
+- Amortization: gradual repayment; early payments mostly interest, later payments mostly principal.
+- Negative amortization: loan balance increases because payments don't cover interest due.
+- Due-on-Sale clause: full loan balance is due when the property is sold; prevents unauthorized assumption.
+- Acceleration clause: lender can demand full repayment immediately upon default.
+- 1 discount point = 1% of the loan amount; used to buy down the interest rate.
+- Secondary market: Fannie Mae and Freddie Mac buy conventional loans. Ginnie Mae backs FHA and VA loans.
+- RESPA: prohibits kickbacks; Loan Estimate within 3 business days; Closing Disclosure 3 business days before closing.
+- TILA / Regulation Z: requires disclosure of APR and loan terms.
+- TRID: combined TILA-RESPA rule; Loan Estimate replaced GFE; Closing Disclosure replaced HUD-1.
+
+APPRAISAL & VALUE:
+- Market Value: most probable price a willing buyer and seller agree on in an arm's-length transaction.
+- Three Approaches to Value:
+1. Sales Comparison: compares to recent comparable sales; most reliable for single-family residential.
+2. Cost Approach: replacement cost minus depreciation plus land value; best for special-use and new construction.
+3. Income Approach: Value = NOI divided by Cap Rate; best for income-producing investment properties.
+- Depreciation: Physical deterioration (wear and tear), Functional obsolescence (outdated features), External obsolescence (outside forces; always incurable).
+- Highest and Best Use: legal, physically possible, financially feasible use that produces the maximum value.
+- Substitution: value is set by cost of an equally desirable substitute.
+- Contribution: value of a component equals what it adds to the whole.
+- Progression: lower-value property benefits from proximity to higher-value properties.
+- Regression: higher-value property pulled down by proximity to lower-value properties.
+- Plottage/Assemblage: combining parcels increases total value.
+
+TRANSFER OF TITLE:
+- General Warranty Deed: warrants title against ALL defects, even before grantor's ownership; strongest protection.
+- Special Warranty Deed: warrants only against defects during grantor's ownership.
+- Bargain and Sale Deed: implies grantor has title but makes no explicit warranties.
+- Quitclaim Deed: conveys only whatever interest grantor has (if any); no warranties; used to clear title defects.
+- Recording provides constructive notice. A deed does NOT need to be recorded to be valid between parties.
+- Adverse possession: acquiring title by open, notorious, hostile, actual, and continuous possession for statutory period.
+- Eminent domain: government takes private property for public use; must pay just compensation. Process = condemnation.
+- Escheat: property reverts to the state if owner dies without a will or heirs.
+- 1031 Exchange: defers capital gains taxes when investment property is swapped for like-kind; 45 days to identify, 180 days to close.
+
+LAND USE:
+- Police power: government's right to regulate for public health, safety, and welfare.
+- Variance: exception to zoning rules for undue hardship unique to that property.
+- Special use permit: allows a use not normally permitted in a zone.
+- Nonconforming use: existed legally before zoning; allowed to continue but cannot be expanded.
+- Spot zoning: rezoning one parcel inconsistently with surrounding area; generally illegal.
+- Certificate of Occupancy (CO): issued after building passes final inspection; authorizes occupancy.
+- CERCLA: current and past owners can be liable for hazardous waste cleanup.
+- Lead paint disclosure: required for all homes built before 1978.
+- Ad valorem tax: based on value. Assessed Value times Mill Rate = Tax. 1 mill = $1 per $1,000.
+- Special assessment: a charge to properties that directly benefit from a public improvement.
+
+MATH FORMULAS:
+- Commission = Sale Price times Commission Rate
+- LTV = Loan Amount divided by Appraised Value
+- Down Payment = Purchase Price times Down Payment Percent
+- Cap Rate = NOI divided by Property Value; Value = NOI divided by Cap Rate
+- NOI = Gross Income minus Vacancy Loss minus Operating Expenses (excludes mortgage and depreciation)
+- GRM = Property Price divided by Monthly Gross Rent
+- Monthly Interest = (Loan Balance times Annual Rate) divided by 12
+- Depreciation Residential = Building Value divided by 27.5 years
+- Depreciation Commercial = Building Value divided by 39 years
+- Property Tax = Assessed Value times Tax Rate
+- 1 acre = 43,560 sq ft. 1 section = 640 acres.
+`
+
+// ─── FLASHCARDS (60 cards) ────────────────────────────────────────────────────
 const FLASHCARDS = [
-{ id: 1, term: "Amortization", definition: "The process of paying off a debt over time through regular payments that cover both principal and interest." },
-{ id: 2, term: "Appraisal", definition: "A professional estimate of a property's market value, typically required by lenders before approving a mortgage." },
-{ id: 3, term: "Assessed Value", definition: "The dollar value assigned to a property by a public tax assessor for the purpose of taxation." },
-{ id: 4, term: "Buyer's Agent", definition: "A real estate agent who represents the buyer in a transaction, with a fiduciary duty to act in the buyer's best interest." },
-{ id: 5, term: "Chain of Title", definition: "A chronological record of all historical transfers of ownership of a property." },
-{ id: 6, term: "Closing Costs", definition: "Fees and expenses paid at the closing of a real estate transaction, typically 2-5% of the loan amount." },
-{ id: 7, term: "Comparative Market Analysis (CMA)", definition: "An evaluation of similar recently sold properties used to determine a home's market value." },
-{ id: 8, term: "Contingency", definition: "A condition that must be met before a real estate contract becomes binding." },
-{ id: 9, term: "Deed", definition: "A legal document that transfers ownership of real property from one party to another." },
-{ id: 10, term: "Earnest Money", definition: "A deposit made by the buyer to show serious intent to purchase a property." },
-{ id: 11, term: "Easement", definition: "The right to use another person's land for a specific purpose." },
-{ id: 12, term: "Equity", definition: "The difference between a property's market value and the outstanding mortgage balance." },
-{ id: 13, term: "Escrow", definition: "A neutral third party that holds funds and documents until all conditions of a real estate transaction are met." },
-{ id: 14, term: "Fee Simple", definition: "The most complete form of ownership — the owner has full control and can sell or pass it to heirs." },
-{ id: 15, term: "Fiduciary Duty", definition: "A legal obligation to act in the best interest of the client — includes loyalty, disclosure, confidentiality, and care." },
-{ id: 16, term: "Listing Agreement", definition: "A contract between a property owner and a real estate broker authorizing the broker to find a buyer." },
-{ id: 17, term: "LTV (Loan-to-Value)", definition: "A ratio comparing the mortgage loan amount to the appraised value of the property." },
-{ id: 18, term: "MLS (Multiple Listing Service)", definition: "A shared database used by real estate agents to list and find properties for sale." },
-{ id: 19, term: "Mortgage", definition: "A loan used to purchase real estate where the property itself serves as collateral." },
-{ id: 20, term: "Title Insurance", definition: "Insurance that protects buyers and lenders against losses from title defects or disputes." },
+{ id: 1, category: "Ownership", term: "Fee Simple Absolute", definition: "The most complete form of property ownership — full control with no conditions or time limits. The owner can sell, lease, mortgage, or leave it to heirs without any restrictions." },
+{ id: 2, category: "Ownership", term: "Fee Simple Defeasible", definition: "Ownership that can automatically end if a specified condition is violated. Example: land granted 'as long as it is used as a park' — use it for anything else and ownership ends." },
+{ id: 3, category: "Ownership", term: "Life Estate", definition: "Ownership that lasts only for the duration of someone's life. The life tenant can use and profit from the property but cannot permanently destroy or waste it. A remainderman inherits after." },
+{ id: 4, category: "Ownership", term: "Joint Tenancy", definition: "Co-ownership with right of survivorship. Requires 4 unities — Time, Title, Interest, Possession (TTIP). When one owner dies, their share passes automatically to surviving owners, skipping probate entirely." },
+{ id: 5, category: "Ownership", term: "Tenancy in Common", definition: "Co-ownership without survivorship rights. Each owner holds an undivided interest and can independently sell, mortgage, or will their share to anyone. Unequal ownership percentages are allowed." },
+{ id: 6, category: "Ownership", term: "Tenancy by the Entirety", definition: "A form of co-ownership available only to married couples. Neither spouse can sell, transfer, or encumber the property without the other's full consent." },
+{ id: 7, category: "Ownership", term: "Community Property", definition: "In 9 states, most assets acquired during marriage are owned equally (50/50) by both spouses, regardless of whose name is on the title or who earned the money." },
+{ id: 8, category: "Ownership", term: "Severalty", definition: "Ownership by a single individual with no co-owners. The owner has complete, undivided control over the property." },
+{ id: 9, category: "Ownership", term: "Condominium", definition: "The owner holds fee simple title to their individual unit AND shares an undivided interest in all common areas such as lobbies, hallways, grounds, and amenities." },
+{ id: 10, category: "Ownership", term: "Co-op (Cooperative)", definition: "Residents purchase shares in the corporation that owns the entire building. There is no individual deed — each owner receives a proprietary lease for their specific unit." },
+{ id: 11, category: "Ownership", term: "MARIA Test", definition: "Determines whether personal property has legally become a fixture (real property): Method of attachment, Adaptability to the property, Relationship of the parties, Intention, Agreement." },
+{ id: 12, category: "Encumbrances", term: "Easement Appurtenant", definition: "An easement that benefits one parcel (dominant tenement) at the expense of an adjacent parcel (servient tenement). It runs with the land — it transfers automatically when either property is sold." },
+{ id: 13, category: "Encumbrances", term: "Easement in Gross", definition: "An easement that benefits a specific person or company rather than adjacent land. A utility company's power line easement is a classic example. It does NOT run with the land." },
+{ id: 14, category: "Encumbrances", term: "Easement by Prescription", definition: "An easement acquired by using someone else's land openly, notoriously, hostilely, and continuously for the state's statutory period — similar to adverse possession but for use rights, not ownership." },
+{ id: 15, category: "Encumbrances", term: "Mechanic's Lien", definition: "A specific, involuntary lien filed against a property by a contractor, subcontractor, or supplier who provided labor or materials but was not paid. Must be filed within a statutory deadline." },
+{ id: 16, category: "Encumbrances", term: "Lis Pendens", definition: "A recorded notice warning the public that a lawsuit is currently pending that may affect title to the property. It puts all future buyers on constructive notice of the dispute." },
+{ id: 17, category: "Encumbrances", term: "Encroachment", definition: "When a structure, fence, or improvement physically extends from one property onto a neighboring property without the neighbor's permission." },
+{ id: 18, category: "Encumbrances", term: "Deed Restriction", definition: "A private limitation on land use that is recorded in the deed or subdivision plat. Also called a restrictive covenant. Runs with the land and binds future owners." },
+{ id: 19, category: "Deeds & Title", term: "General Warranty Deed", definition: "Provides the strongest protection for the buyer. The grantor guarantees title against ALL defects and claims — even those that arose before the grantor ever owned the property." },
+{ id: 20, category: "Deeds & Title", term: "Special Warranty Deed", definition: "The grantor guarantees title only against defects that arose during their ownership. It does not cover any claims from previous owners." },
+{ id: 21, category: "Deeds & Title", term: "Quitclaim Deed", definition: "Transfers only whatever interest the grantor currently holds — which may be nothing at all. Contains zero warranties. Commonly used to clear title defects or transfer between family members." },
+{ id: 22, category: "Deeds & Title", term: "Bargain and Sale Deed", definition: "Implies the grantor holds title and has the right to convey, but makes no explicit promises or warranties about the condition of the title." },
+{ id: 23, category: "Deeds & Title", term: "Adverse Possession", definition: "Gaining legal title to land by occupying it in a way that is open, notorious, hostile, actual, and continuous for the state's statutory period. Some states also require payment of property taxes." },
+{ id: 24, category: "Deeds & Title", term: "Constructive Notice", definition: "The legal presumption that everyone is aware of any document properly recorded in the public record — even if they have never personally seen it." },
+{ id: 25, category: "Deeds & Title", term: "Title Insurance", definition: "Protection against losses from hidden title defects. An owner's policy protects the buyer; a lender's policy (required by most lenders) protects the mortgage holder." },
+{ id: 26, category: "Deeds & Title", term: "1031 Exchange", definition: "An IRS provision allowing an investor to defer capital gains taxes by swapping one investment property for a like-kind replacement. Must identify the new property in 45 days and close within 180 days." },
+{ id: 27, category: "Agency", term: "Fiduciary Duty (OLD CAR)", definition: "The duties owed by an agent to their client: Obedience, Loyalty, Disclosure, Confidentiality (this one survives after the agency ends), Accounting, and Reasonable Care." },
+{ id: 28, category: "Agency", term: "Dual Agency", definition: "One agent or brokerage represents both the buyer and the seller in the same transaction. Legal in most states but requires informed written consent from both parties." },
+{ id: 29, category: "Agency", term: "Exclusive Right to Sell", definition: "The most common listing agreement. The broker earns a commission no matter who finds the buyer — the listing broker, another agent, or even the seller themselves." },
+{ id: 30, category: "Agency", term: "Exclusive Agency Listing", definition: "Only one broker is authorized, but the owner retains the right to sell the property themselves without owing a commission. The broker earns a commission only if they produce the buyer." },
+{ id: 31, category: "Agency", term: "Open Listing", definition: "The owner may list with several brokers simultaneously. Only the broker who personally produces the ready, willing, and able buyer earns a commission. It is a unilateral contract." },
+{ id: 32, category: "Agency", term: "Net Listing", definition: "The broker's compensation equals everything received above the seller's agreed minimum net price. Legal in some states but discouraged because of potential conflicts of interest." },
+{ id: 33, category: "Agency", term: "Blockbusting", definition: "The illegal act of inducing property owners to sell — often at below-market prices — by making representations that members of a protected class are moving into the neighborhood. Also called panic peddling." },
+{ id: 34, category: "Agency", term: "Steering", definition: "Illegally directing prospective buyers or renters toward or away from certain neighborhoods based on a protected characteristic such as race, religion, or national origin." },
+{ id: 35, category: "Agency", term: "Commingling", definition: "The illegal practice of mixing a client's funds (earnest money, security deposits) with the broker's personal or business operating account. A serious license law violation." },
+{ id: 36, category: "Agency", term: "Puffing", definition: "Exaggerated, non-factual, subjective statements about a property (e.g., 'best views in the city'). Not illegal, but must not cross into making false statements of verifiable fact." },
+{ id: 37, category: "Contracts", term: "Statute of Frauds", definition: "A law requiring certain contracts — including real estate purchase agreements and leases longer than one year — to be in writing to be enforceable in a court of law." },
+{ id: 38, category: "Contracts", term: "Specific Performance", definition: "A court remedy forcing a breaching party to complete a real estate transaction as agreed. Available in real estate because every parcel of land is legally considered unique." },
+{ id: 39, category: "Contracts", term: "Contingency", definition: "A condition written into a contract that must be satisfied before the contract becomes fully binding. Common types: financing contingency, home inspection contingency, appraisal contingency." },
+{ id: 40, category: "Contracts", term: "Novation", definition: "Replacing one contracting party with a new party, completely releasing the original party from all obligations. All parties must agree to the substitution." },
+{ id: 41, category: "Contracts", term: "Time is of the Essence", definition: "A contract clause making all specified deadlines strictly enforceable. Missing a deadline — even by one day — can legally constitute a breach of contract." },
+{ id: 42, category: "Contracts", term: "Earnest Money", definition: "A good-faith deposit made by the buyer to demonstrate serious intent to purchase. Held in escrow. If the buyer defaults without a valid reason, the seller may keep it as liquidated damages." },
+{ id: 43, category: "Financing", term: "Amortization", definition: "The gradual repayment of a mortgage through scheduled regular payments. In early years, most of each payment covers interest. Over time, more of each payment goes toward reducing the principal." },
+{ id: 44, category: "Financing", term: "Loan-to-Value (LTV)", definition: "A ratio comparing the loan amount to the appraised property value. LTV = Loan divided by Value. Lenders use it to assess risk — higher LTV means higher risk to the lender." },
+{ id: 45, category: "Financing", term: "PMI", definition: "Private Mortgage Insurance — protects the LENDER (not the borrower) against default. Required on conventional loans when the down payment is less than 20% (LTV over 80%)." },
+{ id: 46, category: "Financing", term: "FHA Loan", definition: "A government-backed loan insured by the Federal Housing Administration. Requires as little as 3.5% down but mandates a Mortgage Insurance Premium (MIP) for the life of the loan in most cases." },
+{ id: 47, category: "Financing", term: "VA Loan", definition: "A loan guaranteed by the Department of Veterans Affairs for eligible service members and veterans. No down payment required, no PMI, but a one-time funding fee is charged at closing." },
+{ id: 48, category: "Financing", term: "Acceleration Clause", definition: "A mortgage provision giving the lender the right to demand the entire remaining loan balance be paid immediately if the borrower defaults on their payments." },
+{ id: 49, category: "Financing", term: "Due-on-Sale Clause", definition: "Requires the full mortgage balance to be paid off when the property is sold or transferred. Prevents the buyer from assuming the seller's existing loan without lender approval." },
+{ id: 50, category: "Financing", term: "Discount Points", definition: "Prepaid interest paid at closing to lower the mortgage interest rate. One point = 1% of the loan amount. More points paid upfront results in a lower monthly payment over the loan's life." },
+{ id: 51, category: "Financing", term: "Secondary Mortgage Market", definition: "Where already-originated loans are bought and sold. Fannie Mae and Freddie Mac purchase conventional loans; Ginnie Mae backs FHA and VA loan securities. This frees up capital for new loans." },
+{ id: 52, category: "Financing", term: "RESPA", definition: "The Real Estate Settlement Procedures Act. Prohibits kickbacks and unearned fees. Requires a Loan Estimate within 3 business days of application and a Closing Disclosure 3 days before settlement." },
+{ id: 53, category: "Appraisal", term: "Sales Comparison Approach", definition: "Estimates value by comparing the subject property to recently sold comparable properties nearby. Adjustments are made for differences. Most reliable method for single-family residential homes." },
+{ id: 54, category: "Appraisal", term: "Cost Approach", definition: "Estimates value as: Replacement Cost of Improvements minus Depreciation plus Land Value. Best for new construction and special-use properties like schools and churches that rarely sell." },
+{ id: 55, category: "Appraisal", term: "Income Approach", definition: "Converts a property's income into a value estimate using: Value = NOI divided by Cap Rate. The most appropriate method for income-producing investment properties like apartment buildings." },
+{ id: 56, category: "Appraisal", term: "Functional Obsolescence", definition: "A loss in property value from outdated or inadequate design features within the property — such as a 4-bedroom home with only one bathroom. Can be curable or incurable." },
+{ id: 57, category: "Appraisal", term: "External Obsolescence", definition: "A loss in value caused by factors entirely outside the property itself — such as a new highway nearby or a declining neighborhood. It is always considered incurable." },
+{ id: 58, category: "Appraisal", term: "Highest and Best Use", definition: "The use of a property that is legally permissible, physically possible, financially feasible, AND produces the maximum property value. Appraisers determine this before valuing any property." },
+{ id: 59, category: "Fair Housing", term: "7 Protected Classes", definition: "The Fair Housing Act prohibits discrimination based on: Race, Color, Religion, National Origin, Sex, Familial Status, and Disability. Familial Status and Disability were added by the 1988 amendment." },
+{ id: 60, category: "Fair Housing", term: "Mrs. Murphy Exemption", definition: "An exemption from the Fair Housing Act for owners of buildings with 4 or fewer units who live in one of those units. The owner may personally choose tenants — but CANNOT use a broker or place discriminatory advertising." },
 ]
 
+// ─── QUIZ QUESTIONS (45 questions) ───────────────────────────────────────────
 const QUIZ_QUESTIONS = [
-{ question: "What is the term for the right to use another person's land for a specific purpose?", options: ["Encumbrance", "Easement", "Lien", "Covenant"], answer: 1, explanation: "An easement is the right to use another's land for a specific purpose, like a utility company running power lines." },
-{ question: "Which type of ownership gives the most complete property rights?", options: ["Leasehold", "Life Estate", "Fee Simple", "Joint Tenancy"], answer: 2, explanation: "Fee Simple is the most complete form of ownership — full control, can sell or pass to heirs with no restrictions." },
-{ question: "What does CMA stand for?", options: ["Commercial Market Assessment", "Comparative Market Analysis", "Current Mortgage Amount", "Certified Market Agent"], answer: 1, explanation: "CMA = Comparative Market Analysis — used to estimate a home's value by comparing similar recently sold homes." },
-{ question: "Earnest money is paid by the:", options: ["Seller to the agent", "Buyer to show intent", "Lender to the title company", "Appraiser to the county"], answer: 1, explanation: "The buyer pays earnest money as a deposit to demonstrate serious intent to purchase the property." },
-{ question: "What is amortization?", options: ["Calculating property taxes", "Paying off a debt over time through regular payments", "Transferring a title", "Inspecting a property"], answer: 1, explanation: "Amortization is the process of gradually paying off a loan through scheduled payments covering principal + interest." },
-{ question: "A real estate agent's fiduciary duty includes all EXCEPT:", options: ["Loyalty", "Disclosure", "Profit maximization", "Confidentiality"], answer: 2, explanation: "Fiduciary duties are loyalty, disclosure, confidentiality, obedience, reasonable care, and accounting — NOT profit maximization." },
-{ question: "What is equity in real estate?", options: ["The tax rate on property", "The appraised minus assessed value", "Market value minus outstanding mortgage", "The down payment amount"], answer: 2, explanation: "Equity = Property Market Value − Outstanding Mortgage Balance." },
-{ question: "An escrow account is held by:", options: ["The buyer's bank", "A neutral third party", "The listing agent", "The county recorder"], answer: 1, explanation: "Escrow is held by a neutral third party until all conditions of the transaction are met." },
-{ question: "Which document legally transfers property ownership?", options: ["Mortgage", "Title Insurance", "Deed", "Listing Agreement"], answer: 2, explanation: "A deed is the legal document that transfers ownership of real property from seller to buyer." },
-{ question: "LTV stands for:", options: ["Listing Terms Value", "Loan-to-Value", "Licensed Transaction Verification", "Land Transfer Value"], answer: 1, explanation: "LTV = Loan-to-Value ratio. It compares your loan amount to the appraised value of the property." },
+{ category: "Ownership", question: "Which ownership type gives the most complete rights with no conditions attached?", options: ["Leasehold Estate","Life Estate","Fee Simple Absolute","Joint Tenancy"], answer: 2, explanation: "Fee Simple Absolute is the highest form of ownership — complete control with no time limits or conditions. The owner can sell, lease, mortgage, or will the property freely." },
+{ category: "Ownership", question: "Two co-owners hold title with right of survivorship. When one owner passes away, their share:", options: ["Passes to their heirs via their will","Moves automatically to the surviving owner","Reverts to the state","Goes through probate"], answer: 1, explanation: "Right of survivorship in Joint Tenancy means the deceased owner's interest transfers automatically to the surviving owners — completely bypassing probate." },
+{ category: "Ownership", question: "Which co-ownership form allows partners to hold unequal shares and leave them to anyone in a will?", options: ["Joint Tenancy","Tenancy by the Entirety","Tenancy in Common","Community Property"], answer: 2, explanation: "Tenancy in Common allows unequal ownership shares. Each owner can independently sell, mortgage, or will their interest to anyone — there is no right of survivorship." },
+{ category: "Ownership", question: "The MARIA test is used to determine whether an item is legally considered a:", options: ["Valid deed","Fixture","Type of lien","Form of legal description"], answer: 1, explanation: "MARIA (Method of attachment, Adaptability, Relationship, Intention, Agreement) determines whether personal property has legally become part of the real property as a fixture." },
+{ category: "Ownership", question: "A condo owner's legal interest includes fee simple title to their unit plus:", options: ["A leasehold interest in common areas","Corporate shares in the building","An undivided interest in all common areas","Nothing beyond their unit's four walls"], answer: 2, explanation: "Condo owners hold fee simple title to their individual unit AND share an undivided interest in all common elements — lobbies, hallways, amenities, and grounds." },
+{ category: "Ownership", question: "Which form of co-ownership is exclusively available to married couples?", options: ["Joint Tenancy","Tenancy in Common","Severalty","Tenancy by the Entirety"], answer: 3, explanation: "Tenancy by the Entirety is reserved for married couples. Neither spouse can transfer or encumber their interest without the other's full consent." },
+{ category: "Ownership", question: "A property is granted 'as long as it is used as a school.' If the school closes, ownership ends. This is:", options: ["Fee Simple Absolute","Life Estate","Fee Simple Defeasible","Leasehold Estate"], answer: 2, explanation: "Fee Simple Defeasible is ownership with a condition — if the condition is violated, ownership automatically terminates and may revert to the grantor." },
+{ category: "Ownership", question: "When a person owns property entirely on their own with no co-owners, this is called:", options: ["Joint Tenancy","Severalty","Tenancy in Common","Community Property"], answer: 1, explanation: "Severalty is ownership by a single individual alone. The term comes from the idea of severing all others from an interest in the property." },
+{ category: "Agency", question: "Which fiduciary duty continues to bind an agent even after the listing agreement expires?", options: ["Obedience","Loyalty","Confidentiality","Accounting"], answer: 2, explanation: "Confidentiality is the only fiduciary duty that survives the end of the agency relationship. An agent may never later disclose information that could be used against a former client." },
+{ category: "Agency", question: "An agent says a home has 'the most spectacular sunsets in the entire county.' This is an example of:", options: ["Fraud","Material misrepresentation","Puffing","Steering"], answer: 2, explanation: "Puffing is non-factual, exaggerated, subjective praise. No reasonable person would rely on it as a verifiable statement of fact. It is not illegal." },
+{ category: "Agency", question: "A listing agreement that guarantees the broker a commission no matter who finds the buyer is called:", options: ["Open Listing","Exclusive Agency","Exclusive Right to Sell","Net Listing"], answer: 2, explanation: "The Exclusive Right to Sell guarantees the listing broker a commission regardless of who produces the buyer — another agent, the seller themselves, or anyone else." },
+{ category: "Agency", question: "Dual agency requires which of the following before it can proceed?", options: ["Verbal consent from the buyer only","A court order","Informed written consent from both buyer and seller","State licensing board approval"], answer: 2, explanation: "Dual agency creates a conflict of interest. It is legal in most states only with informed written consent from both the buyer and the seller." },
+{ category: "Agency", question: "An agent guides a family toward a different neighborhood based on their race. This illegal act is called:", options: ["Blockbusting","Redlining","Commingling","Steering"], answer: 3, explanation: "Steering is the illegal practice of directing buyers or renters toward or away from specific neighborhoods based on a protected characteristic such as race." },
+{ category: "Agency", question: "A broker deposits a client's earnest money into their personal checking account. This violation is called:", options: ["Conversion","Commingling","Fraud","Puffing"], answer: 1, explanation: "Commingling is the illegal mixing of client funds with the broker's personal or business funds. Brokers must keep all client money in a separate escrow or trust account." },
+{ category: "Agency", question: "An agent encourages homeowners to sell quickly by warning a different ethnic group is buying nearby. This is:", options: ["Steering","Redlining","Blockbusting","Spot Zoning"], answer: 2, explanation: "Blockbusting (panic peddling) is the illegal act of inducing owners to sell by making representations about a protected class entering the neighborhood." },
+{ category: "Agency", question: "In an Open Listing, a commission is earned only by:", options: ["Any broker who shows the property","The listing broker regardless of who sells","The broker who actually produces the buyer","The broker with the lowest rate"], answer: 2, explanation: "In an Open Listing, multiple brokers can market the same property, but only the one who actually brings the ready, willing, and able buyer earns the commission." },
+{ category: "Contracts", question: "For a real estate contract to be enforceable in court, the Statute of Frauds requires it to be:", options: ["Notarized","In writing","Witnessed by two people","Reviewed by an attorney"], answer: 1, explanation: "The Statute of Frauds requires real estate contracts to be in writing to be enforceable. An oral agreement to buy or sell real property cannot be upheld in court." },
+{ category: "Contracts", question: "A seller tries to back out of an accepted offer. The buyer goes to court to force the sale. This remedy is called:", options: ["Liquidated Damages","Rescission","Specific Performance","Novation"], answer: 2, explanation: "Specific Performance forces a party to complete the transaction as agreed. It is uniquely available in real estate because each property is legally considered one-of-a-kind." },
+{ category: "Contracts", question: "A contract that was illegal from the start and has no legal effect whatsoever is:", options: ["Voidable","Unenforceable","Void","Executory"], answer: 2, explanation: "A void contract has no legal effect from the beginning — it was never a valid contract. Example: a contract to perform an illegal act." },
+{ category: "Contracts", question: "A buyer's offer includes a clause stating the deal only goes forward if they secure a mortgage. This clause is a:", options: ["Time is of the Essence clause","Contingency","Novation","Liquidated Damages clause"], answer: 1, explanation: "A financing contingency is a condition that must be satisfied before the contract is binding. If the buyer cannot secure a loan, they can exit without penalty." },
+{ category: "Contracts", question: "A new party takes over a contract, completely releasing the original party from all liability. This is:", options: ["Assignment","Rescission","Specific Performance","Novation"], answer: 3, explanation: "Novation substitutes a new contracting party for the original one and fully releases the original party. All parties must agree to the substitution." },
+{ category: "Contracts", question: "Which of the following is NOT a required element of a valid real estate contract?", options: ["Consideration","Mutual Agreement","Notarization","Legal Purpose"], answer: 2, explanation: "Notarization is NOT a required element to form a valid contract. The essentials are Offer, Acceptance, Consideration, Legal Capacity, and Legal Purpose." },
+{ category: "Financing", question: "The borrower in a mortgage transaction is called the:", options: ["Mortgagee","Trustee","Mortgagor","Beneficiary"], answer: 2, explanation: "The mortgagor is the borrower who pledges the property as collateral. The mortgagee is the lender. Memory tip: mortgagOR = the One who Owes." },
+{ category: "Financing", question: "PMI is purchased primarily to protect:", options: ["The borrower against job loss","The lender when the down payment is under 20%","The seller if the buyer walks away","The title company against defects"], answer: 1, explanation: "Private Mortgage Insurance (PMI) protects the lender — not the buyer — in case of default. Required on conventional loans when LTV exceeds 80%." },
+{ category: "Financing", question: "One discount point paid at closing equals:", options: ["0.5% of the purchase price","1% of the purchase price","1% of the loan amount","A flat $1,000 fee"], answer: 2, explanation: "One discount point = 1% of the loan amount, paid upfront at closing. Buying points reduces the interest rate, lowering monthly payments over the life of the loan." },
+{ category: "Financing", question: "If a borrower stops making payments, which mortgage clause lets the lender demand the entire balance immediately?", options: ["Subordination Clause","Prepayment Clause","Due-on-Sale Clause","Acceleration Clause"], answer: 3, explanation: "The acceleration clause gives the lender the right to call the entire remaining loan balance due immediately upon the borrower's default." },
+{ category: "Financing", question: "Ginnie Mae's primary role in the secondary mortgage market is to:", options: ["Originate FHA loans directly","Back securities made of FHA and VA loans","Set conventional loan limits","Insure conventional mortgages"], answer: 1, explanation: "Ginnie Mae (GNMA) is a government agency guaranteeing mortgage-backed securities composed of FHA and VA loans, providing liquidity for lenders to make more government-backed loans." },
+{ category: "Financing", question: "TRID requires lenders to deliver the Closing Disclosure to buyers at least how far in advance of closing?", options: ["1 business day","3 business days","5 business days","7 calendar days"], answer: 1, explanation: "Under TRID, the Closing Disclosure must be delivered at least 3 business days before closing, giving borrowers time to review final loan terms." },
+{ category: "Financing", question: "With a standard amortizing mortgage, what happens over time?", options: ["Interest portion increases each month","Each payment stays the same but more goes to principal over time","Early payments are mostly principal","Both principal and interest portions stay equal"], answer: 1, explanation: "Amortization keeps the payment constant, but the composition shifts. Early on most of the payment covers interest. As the balance falls, more of each payment reduces principal." },
+{ category: "Financing", question: "A VA loan is available to:", options: ["All first-time homebuyers","Any buyer with good credit","Eligible military service members and veterans","Buyers in rural areas only"], answer: 2, explanation: "VA loans are a benefit for eligible active-duty military, veterans, and surviving spouses. They offer no down payment and no PMI, though a one-time funding fee applies." },
+{ category: "Fair Housing", question: "Which of the following is NOT one of the 7 federally protected classes under the Fair Housing Act?", options: ["Familial Status","Disability","Sexual Orientation","National Origin"], answer: 2, explanation: "Sexual Orientation is not currently a federal protected class under the Fair Housing Act. The 7 federal classes are Race, Color, Religion, National Origin, Sex, Familial Status, and Disability." },
+{ category: "Fair Housing", question: "A landlord refuses to rent to a couple because they have a toddler. This violates the protected class of:", options: ["Disability","Sex","Familial Status","National Origin"], answer: 2, explanation: "Familial Status protects households with children under 18, pregnant women, and those gaining custody. Refusing to rent to families with young children is illegal discrimination." },
+{ category: "Fair Housing", question: "An agent tells homeowners their values will drop because another ethnic group is buying nearby. This is:", options: ["Steering","Redlining","Blockbusting","Puffing"], answer: 2, explanation: "Blockbusting (panic peddling) is inducing owners to sell by making representations about protected classes entering the neighborhood." },
+{ category: "Fair Housing", question: "The Civil Rights Act of 1866 prohibits housing discrimination based on race and has:", options: ["The same exemptions as the 1968 Fair Housing Act","No exemptions whatsoever","The Mrs. Murphy exemption","An exemption for small landlords"], answer: 1, explanation: "The Civil Rights Act of 1866 has absolutely NO exemptions. Every property transaction involving racial discrimination is prohibited, no exceptions." },
+{ category: "Fair Housing", question: "A tenant with a disability asks to install grab bars. The landlord must:", options: ["Pay for the modifications","Allow them at the tenant's expense","Refuse since it alters the unit","Get city approval first"], answer: 1, explanation: "The Fair Housing Act requires landlords to allow reasonable modifications for disabled tenants. The tenant pays, and the landlord may require restoration when the tenant moves out." },
+{ category: "Fair Housing", question: "A Fair Housing complaint filed with HUD must be submitted within:", options: ["6 months","1 year","2 years","3 years"], answer: 1, explanation: "HUD complaints must be filed within 1 year of the alleged discriminatory act. A federal court lawsuit has a 2-year deadline." },
+{ category: "Appraisal", question: "Which appraisal method is considered most reliable for a single-family home?", options: ["Cost Approach","Income Approach","Sales Comparison Approach","Gross Rent Multiplier Method"], answer: 2, explanation: "The Sales Comparison Approach is most reliable for residential properties because there are typically many recent comparable home sales available to use as benchmarks." },
+{ category: "Appraisal", question: "Which appraisal approach works best for a fire station or elementary school?", options: ["Income Approach","Sales Comparison Approach","Cost Approach","GRM Method"], answer: 2, explanation: "The Cost Approach is best for special-use or public properties because they rarely sell (making comparables scarce) and they don't generate rental income." },
+{ category: "Appraisal", question: "A home loses value because it has an outdated floor plan with poor room flow. This is an example of:", options: ["Physical deterioration","External obsolescence","Functional obsolescence","Curable depreciation"], answer: 2, explanation: "Functional obsolescence is a loss in value due to outdated or inadequate design features within the property itself — like an awkward floor plan or too few bathrooms." },
+{ category: "Appraisal", question: "A factory opens one block away, reducing nearby home values. This depreciation is:", options: ["Physical deterioration","Functional obsolescence","External obsolescence","Curable depreciation"], answer: 2, explanation: "External obsolescence results from factors entirely outside the property — like nearby industrial uses, a highway, or neighborhood decline. It is always classified as incurable." },
+{ category: "Appraisal", question: "Highest and Best Use must satisfy all of the following EXCEPT:", options: ["Legally permissible","Physically possible","Owned by the government","Financially feasible"], answer: 2, explanation: "Highest and Best Use must be legally permissible, physically possible, and financially feasible — and produce maximum value. Government ownership is not a requirement." },
+{ category: "Math", question: "A property sells for $400,000 with a 5% commission. What is the total commission?", options: ["$20,000","$25,000","$40,000","$4,000"], answer: 0, explanation: "$400,000 × 0.05 = $20,000 total commission." },
+{ category: "Math", question: "A home is worth $320,000 with a $200,000 loan balance. What is the owner's equity?", options: ["$200,000","$320,000","$120,000","$80,000"], answer: 2, explanation: "Equity = Market Value − Loan Balance = $320,000 − $200,000 = $120,000." },
+{ category: "Math", question: "A rental property has an NOI of $60,000 and the local cap rate is 8%. What is the estimated property value?", options: ["$480,000","$750,000","$600,000","$680,000"], answer: 1, explanation: "Value = NOI ÷ Cap Rate = $60,000 ÷ 0.08 = $750,000." },
+{ category: "Math", question: "A borrower has a $180,000 loan at 6% annual interest. What is the interest portion of the first monthly payment?", options: ["$10,800","$1,080","$900","$1,800"], answer: 2, explanation: "Annual interest = $180,000 × 0.06 = $10,800. Monthly interest = $10,800 ÷ 12 = $900." },
+{ category: "Math", question: "How many square feet are in one acre?", options: ["36,000","40,000","43,560","48,000"], answer: 2, explanation: "One acre = 43,560 square feet. This is one of the most frequently tested numbers on the real estate exam — memorize it." },
 ]
 
+// ─── FORMULAS ─────────────────────────────────────────────────────────────────
 const FORMULAS = [
 { name: "Commission", formula: "Sale Price × Commission Rate", example: "$300,000 × 6% = $18,000", color: "blue" },
 { name: "Loan-to-Value (LTV)", formula: "Loan Amount ÷ Appraised Value × 100", example: "$240,000 ÷ $300,000 × 100 = 80%", color: "emerald" },
 { name: "Down Payment", formula: "Purchase Price × Down Payment %", example: "$300,000 × 20% = $60,000", color: "red" },
-{ name: "Gross Rent Multiplier", formula: "Property Price ÷ Annual Gross Rent", example: "$300,000 ÷ $24,000 = 12.5", color: "blue" },
-{ name: "Cap Rate", formula: "Net Operating Income ÷ Property Value × 100", example: "$18,000 ÷ $300,000 × 100 = 6%", color: "emerald" },
-{ name: "Net Operating Income", formula: "Gross Income − Operating Expenses", example: "$30,000 − $12,000 = $18,000", color: "red" },
-{ name: "Depreciation (Residential)", formula: "Property Value ÷ 27.5 years", example: "$275,000 ÷ 27.5 = $10,000/yr", color: "blue" },
-{ name: "Property Tax", formula: "Assessed Value × Tax Rate", example: "$200,000 × 1.5% = $3,000", color: "emerald" },
-{ name: "Proration (Daily Rate)", formula: "Annual Amount ÷ 365 days", example: "$3,650 ÷ 365 = $10/day", color: "red" },
-{ name: "Break-Even Ratio", formula: "(Expenses + Debt Service) ÷ Gross Income", example: "($12,000 + $15,000) ÷ $30,000 = 90%", color: "blue" },
+{ name: "Equity", formula: "Market Value − Outstanding Loan Balance", example: "$350,000 − $220,000 = $130,000", color: "emerald" },
+{ name: "Gross Rent Multiplier (GRM)", formula: "Property Price ÷ Monthly Gross Rent", example: "$300,000 ÷ $2,000 = 150", color: "blue" },
+{ name: "Cap Rate", formula: "NOI ÷ Property Value × 100", example: "$18,000 ÷ $300,000 × 100 = 6%", color: "emerald" },
+{ name: "Value (Income Approach)", formula: "NOI ÷ Cap Rate", example: "$18,000 ÷ 0.06 = $300,000", color: "red" },
+{ name: "Net Operating Income (NOI)", formula: "Gross Income − Vacancy Loss − Operating Expenses", example: "$30,000 − $2,000 − $10,000 = $18,000", color: "blue" },
+{ name: "Monthly Interest", formula: "(Loan Balance × Annual Rate) ÷ 12", example: "($200,000 × 6%) ÷ 12 = $1,000/mo", color: "red" },
+{ name: "Depreciation (Residential)", formula: "Building Value ÷ 27.5 years", example: "$275,000 ÷ 27.5 = $10,000/yr", color: "blue" },
+{ name: "Depreciation (Commercial)", formula: "Building Value ÷ 39 years", example: "$390,000 ÷ 39 = $10,000/yr", color: "emerald" },
+{ name: "Property Tax", formula: "Assessed Value × Tax Rate", example: "$200,000 × 1.5% = $3,000/yr", color: "red" },
+{ name: "Proration (Daily Rate)", formula: "Annual Amount ÷ 365 days", example: "$3,650 ÷ 365 = $10/day", color: "blue" },
+{ name: "Break-Even Ratio", formula: "(Expenses + Debt Service) ÷ Gross Income", example: "($12,000 + $15,000) ÷ $30,000 = 90%", color: "emerald" },
 ]
 
+// ─── ACHIEVEMENTS ─────────────────────────────────────────────────────────────
 const ACHIEVEMENTS = [
 { id: "first_card", name: "First Flip!", icon: "🃏", desc: "Study your first flashcard", xp: 10 },
+{ id: "cards_10", name: "Flashcard Fan", icon: "📚", desc: "Study 10 flashcards", xp: 20 },
+{ id: "cards_30", name: "Card Shark", icon: "🦈", desc: "Study 30 flashcards", xp: 40 },
 { id: "quiz_start", name: "Quiz Taker", icon: "📝", desc: "Complete your first quiz", xp: 25 },
 { id: "perfect_quiz", name: "Perfect Score!", icon: "🌟", desc: "Get 100% on a quiz", xp: 50 },
+{ id: "quiz_50", name: "Half Century", icon: "🎯", desc: "Answer 50 quiz questions", xp: 35 },
 { id: "streak_3", name: "On Fire!", icon: "🔥", desc: "3-day streak", xp: 30 },
-{ id: "cards_10", name: "Flashcard Fan", icon: "📚", desc: "Study 10 flashcards", xp: 20 },
 { id: "formula_master", name: "Math Wizard", icon: "🧮", desc: "View all formulas", xp: 20 },
 ]
 
+const QUIZ_CATEGORIES = ["All", ...Array.from(new Set(QUIZ_QUESTIONS.map(q => q.category)))]
+const CARD_CATEGORIES = ["All", ...Array.from(new Set(FLASHCARDS.map(c => c.category)))]
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
 const [tab, setTab] = useState("dashboard")
 const [xp, setXp] = useState(() => parseInt(localStorage.getItem("xp") || "0"))
@@ -68,6 +310,7 @@ const [achievements, setAchievements] = useState(() => JSON.parse(localStorage.g
 const [newAchievement, setNewAchievement] = useState(null)
 const [cardsStudied, setCardsStudied] = useState(() => parseInt(localStorage.getItem("cardsStudied") || "0"))
 const [formulasViewed, setFormulasViewed] = useState(() => parseInt(localStorage.getItem("formulasViewed") || "0"))
+const [totalAnswered, setTotalAnswered] = useState(() => parseInt(localStorage.getItem("totalAnswered") || "0"))
 
 useEffect(() => {
 localStorage.setItem("xp", xp)
@@ -75,13 +318,15 @@ localStorage.setItem("streak", streak)
 localStorage.setItem("achievements", JSON.stringify(achievements))
 localStorage.setItem("cardsStudied", cardsStudied)
 localStorage.setItem("formulasViewed", formulasViewed)
-}, [xp, streak, achievements, cardsStudied, formulasViewed])
+localStorage.setItem("totalAnswered", totalAnswered)
+}, [xp, streak, achievements, cardsStudied, formulasViewed, totalAnswered])
 
 const addXP = (amount) => setXp(prev => prev + amount)
 
 const unlockAchievement = (id) => {
 if (!achievements.includes(id)) {
 const ach = ACHIEVEMENTS.find(a => a.id === id)
+if (!ach) return
 setAchievements(prev => [...prev, id])
 addXP(ach.xp)
 setNewAchievement(ach)
@@ -103,14 +348,11 @@ const navItems = [
 
 return (
 <div className="app">
-{/* Notebook background */}
 <div className="notebook-bg" />
 <div className="dark-overlay" />
-{/* Gradient orbs */}
 <div className="orb orb-blue" />
 <div className="orb orb-emerald" />
 
-{/* Achievement Toast */}
 {newAchievement && (
 <div className="achievement-toast">
 <span>{newAchievement.icon}</span>
@@ -118,7 +360,6 @@ return (
 </div>
 )}
 
-{/* Header */}
 <header className="header">
 <div className="logo">
 <div className="logo-icon">RE</div>
@@ -134,12 +375,10 @@ return (
 </div>
 </header>
 
-{/* XP Bar */}
 <div className="xp-bar-container">
 <div className="xp-bar" style={{ width: `${xpForLevel}%` }} />
 </div>
 
-{/* Nav */}
 <nav className="nav">
 {navItems.map(t => (
 <button key={t.id} className={`nav-btn ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
@@ -148,11 +387,10 @@ return (
 ))}
 </nav>
 
-{/* Content */}
 <main className="main">
-{tab === "dashboard" && <Dashboard xp={xp} streak={streak} level={level} xpForLevel={xpForLevel} achievements={achievements} cardsStudied={cardsStudied} />}
+{tab === "dashboard" && <Dashboard xp={xp} streak={streak} level={level} xpForLevel={xpForLevel} achievements={achievements} cardsStudied={cardsStudied} totalAnswered={totalAnswered} />}
 {tab === "flashcards" && <Flashcards addXP={addXP} unlockAchievement={unlockAchievement} cardsStudied={cardsStudied} setCardsStudied={setCardsStudied} />}
-{tab === "quiz" && <Quiz addXP={addXP} unlockAchievement={unlockAchievement} />}
+{tab === "quiz" && <Quiz addXP={addXP} unlockAchievement={unlockAchievement} totalAnswered={totalAnswered} setTotalAnswered={setTotalAnswered} />}
 {tab === "formulas" && <Formulas unlockAchievement={unlockAchievement} formulasViewed={formulasViewed} setFormulasViewed={setFormulasViewed} />}
 {tab === "terms" && <KeyTerms />}
 {tab === "tutor" && <AITutor />}
@@ -161,7 +399,8 @@ return (
 )
 }
 
-function Dashboard({ xp, streak, level, xpForLevel, achievements, cardsStudied }) {
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function Dashboard({ xp, streak, level, xpForLevel, achievements, cardsStudied, totalAnswered }) {
 return (
 <div className="dashboard">
 <div className="welcome-card">
@@ -171,16 +410,26 @@ return (
 </div>
 
 <div className="stats-grid">
-<div className="stat-card blue"><div className="stat-icon-wrap blue">⚡</div><div className="stat-val">{xp}</div><div className="stat-lbl">Total XP</div></div>
-<div className="stat-card emerald"><div className="stat-icon-wrap emerald">🏆</div><div className="stat-val">{level}</div><div className="stat-lbl">Level</div></div>
-<div className="stat-card red"><div className="stat-icon-wrap red">🔥</div><div className="stat-val">{streak}</div><div className="stat-lbl">Day Streak</div></div>
-<div className="stat-card blue"><div className="stat-icon-wrap blue">🃏</div><div className="stat-val">{cardsStudied}</div><div className="stat-lbl">Cards Studied</div></div>
+<div className="stat-card blue"><div className="stat-icon-wrap">⚡</div><div className="stat-val">{xp}</div><div className="stat-lbl">Total XP</div></div>
+<div className="stat-card emerald"><div className="stat-icon-wrap">🏆</div><div className="stat-val">{level}</div><div className="stat-lbl">Level</div></div>
+<div className="stat-card red"><div className="stat-icon-wrap">🔥</div><div className="stat-val">{streak}</div><div className="stat-lbl">Day Streak</div></div>
+<div className="stat-card blue"><div className="stat-icon-wrap">🃏</div><div className="stat-val">{cardsStudied}</div><div className="stat-lbl">Cards Studied</div></div>
 </div>
 
 <div className="dark-card">
 <div className="card-header"><span className="card-title">Level Progress</span><span className="emerald-text">{xpForLevel}/100 XP</span></div>
 <div className="level-bar"><div className="level-fill" style={{ width: `${xpForLevel}%` }} /></div>
 <p className="muted-text">Level {level} → Level {level + 1}</p>
+</div>
+
+<div className="dark-card">
+<div className="card-header"><span className="card-title">📊 Content Library</span></div>
+<div className="stats-grid" style={{ marginTop: 8 }}>
+<div className="stat-card"><div className="stat-val" style={{ fontSize: "1.2rem" }}>{FLASHCARDS.length}</div><div className="stat-lbl">Flashcards</div></div>
+<div className="stat-card"><div className="stat-val" style={{ fontSize: "1.2rem" }}>{QUIZ_QUESTIONS.length}</div><div className="stat-lbl">Quiz Qs</div></div>
+<div className="stat-card"><div className="stat-val" style={{ fontSize: "1.2rem" }}>{FORMULAS.length}</div><div className="stat-lbl">Formulas</div></div>
+<div className="stat-card"><div className="stat-val" style={{ fontSize: "1.2rem" }}>{totalAnswered}</div><div className="stat-lbl">Answered</div></div>
+</div>
 </div>
 
 <div className="dark-card">
@@ -200,28 +449,35 @@ return (
 )
 }
 
+// ─── FLASHCARDS ───────────────────────────────────────────────────────────────
 function Flashcards({ addXP, unlockAchievement, cardsStudied, setCardsStudied }) {
+const [catFilter, setCatFilter] = useState("All")
 const [index, setIndex] = useState(0)
 const [flipped, setFlipped] = useState(false)
 const [studied, setStudied] = useState(new Set())
-const card = FLASHCARDS[index]
+
+const filtered = catFilter === "All" ? FLASHCARDS : FLASHCARDS.filter(c => c.category === catFilter)
+const card = filtered[index] || filtered[0]
 
 const handleFlip = () => {
 if (!flipped) {
 setFlipped(true)
-if (!studied.has(index)) {
-setStudied(prev => new Set([...prev, index]))
+if (!studied.has(card.id)) {
+setStudied(prev => new Set([...prev, card.id]))
 addXP(5)
 const n = cardsStudied + 1
 setCardsStudied(n)
 if (n === 1) unlockAchievement("first_card")
 if (n >= 10) unlockAchievement("cards_10")
+if (n >= 30) unlockAchievement("cards_30")
 }
 } else setFlipped(false)
 }
 
-const next = () => { setIndex((index + 1) % FLASHCARDS.length); setFlipped(false) }
-const prev = () => { setIndex((index - 1 + FLASHCARDS.length) % FLASHCARDS.length); setFlipped(false) }
+const next = () => { setIndex((index + 1) % filtered.length); setFlipped(false) }
+const prev = () => { setIndex((index - 1 + filtered.length) % filtered.length); setFlipped(false) }
+
+const handleCat = (cat) => { setCatFilter(cat); setIndex(0); setFlipped(false) }
 
 return (
 <div className="section">
@@ -229,10 +485,18 @@ return (
 <h2 className="gradient-text">Smart Flashcards</h2>
 <p className="muted-text">{studied.size}/{FLASHCARDS.length} studied • +5 XP per new card</p>
 </div>
+
+<div className="category-pills">
+{CARD_CATEGORIES.map(cat => (
+<button key={cat} className={`cat-pill ${catFilter === cat ? "active" : ""}`} onClick={() => handleCat(cat)}>{cat}</button>
+))}
+</div>
+<p className="muted-text" style={{ marginBottom: 10 }}>{filtered.length} cards</p>
+
 <div className={`flip-card ${flipped ? "flipped" : ""}`} onClick={handleFlip}>
 <div className="flip-inner">
 <div className="flip-front">
-<div className="card-badge blue-badge">TERM</div>
+<div className="card-badge blue-badge">{card.category}</div>
 <div className="card-term">{card.term}</div>
 <div className="muted-text mt8">Tap to reveal definition</div>
 </div>
@@ -242,55 +506,84 @@ return (
 </div>
 </div>
 </div>
+
 <div className="card-controls">
 <button className="btn btn-ghost" onClick={prev}>← Prev</button>
-<span className="muted-text">{index + 1} / {FLASHCARDS.length}</span>
+<span className="muted-text">{index + 1} / {filtered.length}</span>
 <button className="btn btn-gradient" onClick={next}>Next →</button>
 </div>
 </div>
 )
 }
 
-function Quiz({ addXP, unlockAchievement }) {
+// ─── QUIZ ─────────────────────────────────────────────────────────────────────
+function Quiz({ addXP, unlockAchievement, totalAnswered, setTotalAnswered }) {
+const [catFilter, setCatFilter] = useState("All")
+const [pool, setPool] = useState([])
 const [qIndex, setQIndex] = useState(0)
 const [selected, setSelected] = useState(null)
 const [score, setScore] = useState(0)
 const [done, setDone] = useState(false)
 const [started, setStarted] = useState(false)
-const q = QUIZ_QUESTIONS[qIndex]
+
+const buildPool = (cat) => {
+const base = cat === "All" ? QUIZ_QUESTIONS : QUIZ_QUESTIONS.filter(q => q.category === cat)
+return [...base].sort(() => Math.random() - 0.5)
+}
+
+const startQuiz = () => {
+setPool(buildPool(catFilter))
+setQIndex(0); setSelected(null); setScore(0); setDone(false); setStarted(true)
+}
+
+const q = pool[qIndex]
 
 const handleAnswer = (i) => {
 if (selected !== null) return
 setSelected(i)
 if (i === q.answer) { addXP(10); setScore(p => p + 1) }
+const next = totalAnswered + 1
+setTotalAnswered(next)
+if (next >= 50) unlockAchievement("quiz_50")
 }
 
 const handleNext = () => {
-if (qIndex + 1 >= QUIZ_QUESTIONS.length) {
+if (qIndex + 1 >= pool.length) {
 setDone(true)
 unlockAchievement("quiz_start")
-if (score + (selected === q.answer ? 1 : 0) === QUIZ_QUESTIONS.length) unlockAchievement("perfect_quiz")
-} else { setQIndex(qIndex + 1); setSelected(null) }
+if (score + (selected === q.answer ? 1 : 0) === pool.length) unlockAchievement("perfect_quiz")
+} else {
+setQIndex(qIndex + 1); setSelected(null)
 }
-
-const restart = () => { setQIndex(0); setSelected(null); setScore(0); setDone(false); setStarted(false) }
+}
 
 if (!started) return (
 <div className="section center-section">
 <h2 className="gradient-text">Practice Exam</h2>
-<p className="muted-text">{QUIZ_QUESTIONS.length} questions • +10 XP per correct answer</p>
-<button className="btn btn-gradient btn-big" onClick={() => setStarted(true)}>Start Quiz 🚀</button>
+<p className="muted-text">{QUIZ_QUESTIONS.length} questions total • +10 XP per correct answer</p>
+<div className="category-pills" style={{ justifyContent: "center" }}>
+{QUIZ_CATEGORIES.map(cat => (
+<button key={cat} className={`cat-pill ${catFilter === cat ? "active" : ""}`} onClick={() => setCatFilter(cat)}>{cat}</button>
+))}
+</div>
+<p className="muted-text">
+{catFilter === "All" ? QUIZ_QUESTIONS.length : QUIZ_QUESTIONS.filter(q => q.category === catFilter).length} questions in this set
+</p>
+<button className="btn btn-gradient btn-big" onClick={startQuiz}>Start Quiz 🚀</button>
 </div>
 )
 
 if (done) {
-const pct = Math.round((score / QUIZ_QUESTIONS.length) * 100)
+const pct = Math.round((score / pool.length) * 100)
 return (
 <div className="section center-section">
 <div className="score-ring"><div className="score-pct">{pct}%</div><div className="score-lbl">Score</div></div>
-<h2 className="gradient-text">{pct >= 80 ? "Outstanding!" : pct >= 60 ? "Nice Work!" : "Keep Studying!"}</h2>
-<p className="muted-text">{score}/{QUIZ_QUESTIONS.length} correct • {score * 10} XP earned</p>
-<button className="btn btn-gradient" onClick={restart}>Try Again</button>
+<h2 className="gradient-text">{pct >= 80 ? "Outstanding! 🎉" : pct >= 60 ? "Nice Work! 💪" : "Keep Studying! 📚"}</h2>
+<p className="muted-text">{score}/{pool.length} correct • {score * 10} XP earned</p>
+<div style={{ display: "flex", gap: 10 }}>
+<button className="btn btn-gradient" onClick={startQuiz}>Retry</button>
+<button className="btn btn-ghost" onClick={() => setStarted(false)}>Change Category</button>
+</div>
 </div>
 )
 }
@@ -298,10 +591,10 @@ return (
 return (
 <div className="section">
 <div className="quiz-header-row">
-<span className="muted-text">Question {qIndex + 1}/{QUIZ_QUESTIONS.length}</span>
+<span className="muted-text">Question {qIndex + 1}/{pool.length} • <span style={{ color: "#3b82f6" }}>{q.category}</span></span>
 <span className="emerald-text font-bold">Score: {score}</span>
 </div>
-<div className="progress-bar"><div className="progress-fill" style={{ width: `${(qIndex / QUIZ_QUESTIONS.length) * 100}%` }} /></div>
+<div className="progress-bar"><div className="progress-fill" style={{ width: `${(qIndex / pool.length) * 100}%` }} /></div>
 <div className="dark-card">
 <h3 className="question-text">{q.question}</h3>
 <div className="options">
@@ -320,13 +613,14 @@ return (
 </div>
 {selected !== null && (
 <button className="btn btn-gradient" onClick={handleNext}>
-{qIndex + 1 >= QUIZ_QUESTIONS.length ? "See Results 🎉" : "Next Question →"}
+{qIndex + 1 >= pool.length ? "See Results 🎉" : "Next Question →"}
 </button>
 )}
 </div>
 )
 }
 
+// ─── FORMULAS ─────────────────────────────────────────────────────────────────
 function Formulas({ unlockAchievement, formulasViewed, setFormulasViewed }) {
 const [viewed, setViewed] = useState(new Set())
 const handleView = (i) => {
@@ -361,20 +655,37 @@ return (
 )
 }
 
+// ─── KEY TERMS ────────────────────────────────────────────────────────────────
 function KeyTerms() {
 const [search, setSearch] = useState("")
-const filtered = FLASHCARDS.filter(c => c.term.toLowerCase().includes(search.toLowerCase()) || c.definition.toLowerCase().includes(search.toLowerCase()))
+const [catFilter, setCatFilter] = useState("All")
+
+const filtered = FLASHCARDS.filter(c => {
+const matchCat = catFilter === "All" || c.category === catFilter
+const matchText = c.term.toLowerCase().includes(search.toLowerCase()) || c.definition.toLowerCase().includes(search.toLowerCase())
+return matchCat && matchText
+})
+
 return (
 <div className="section">
 <div className="section-header">
 <h2 className="gradient-text">Key Terms Glossary</h2>
-<p className="muted-text">{FLASHCARDS.length} terms</p>
+<p className="muted-text">{FLASHCARDS.length} terms across {CARD_CATEGORIES.length - 1} categories</p>
 </div>
-<input className="search-input" placeholder="🔍 Search terms..." value={search} onChange={e => setSearch(e.target.value)} />
+<input className="search-input" placeholder="🔍 Search terms or definitions..." value={search} onChange={e => setSearch(e.target.value)} />
+<div className="category-pills" style={{ marginTop: 10 }}>
+{CARD_CATEGORIES.map(cat => (
+<button key={cat} className={`cat-pill ${catFilter === cat ? "active" : ""}`} onClick={() => setCatFilter(cat)}>{cat}</button>
+))}
+</div>
+<p className="muted-text" style={{ marginBottom: 6 }}>{filtered.length} results</p>
 <div className="terms-list">
 {filtered.map(card => (
 <div key={card.id} className="term-item">
+<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
 <div className="term-name">{card.term}</div>
+<span style={{ fontSize: "0.65rem", background: "#27272a", color: "#71717a", padding: "2px 8px", borderRadius: 10 }}>{card.category}</span>
+</div>
 <div className="term-def">{card.definition}</div>
 </div>
 ))}
@@ -383,28 +694,61 @@ return (
 )
 }
 
+// ─── AI TUTOR (Grounded — Gemini only answers from KNOWLEDGE_BASE) ────────────
 function AITutor() {
-const [messages, setMessages] = useState([{ role: "assistant", text: "Hey! I'm your AI real estate tutor 🏠 Ask me anything about concepts, formulas, or exam topics!" }])
+const messagesEndRef = useRef(null)
+const [messages, setMessages] = useState([
+{ role: "assistant", text: "Hey! I'm your real estate exam tutor 🏠\n\nI'm grounded to a verified knowledge base — I only answer from exam-tested real estate material and won't make things up.\n\nAsk me anything: concepts, formulas, laws, or how to remember tricky topics!" }
+])
 const [input, setInput] = useState("")
 const [loading, setLoading] = useState(false)
 const [apiKey, setApiKey] = useState(() => localStorage.getItem("geminiKey") || "")
 const [showKey, setShowKey] = useState(!localStorage.getItem("geminiKey"))
 
+useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, loading])
+
 const saveKey = () => { localStorage.setItem("geminiKey", apiKey); setShowKey(false) }
 
-const send = async () => {
-if (!input.trim() || loading) return
-const msg = input.trim(); setInput("")
-setMessages(p => [...p, { role: "user", text: msg }]); setLoading(true)
+const QUICK_PROMPTS = [
+"What are the 7 Fair Housing protected classes?",
+"Explain Joint Tenancy vs Tenancy in Common",
+"How do I calculate a cap rate?",
+"What does OLD CAR stand for?",
+"Explain the 3 approaches to appraisal",
+"What is blockbusting vs steering?",
+]
+
+const send = async (overrideText) => {
+const msg = overrideText || input.trim()
+if (!msg || loading) return
+setInput("")
+setMessages(p => [...p, { role: "user", text: msg }])
+setLoading(true)
+
+const groundedPrompt = `You are a real estate exam prep tutor. You must ONLY answer using the knowledge base provided below. Do not use any outside knowledge or information not in the knowledge base. If a question is not covered, say: "That topic isn't in my knowledge base — try asking about [suggest a related covered topic instead]."
+
+Be concise, clear, and exam-focused. Use bullet points for lists. Mention memory tricks when helpful. Keep answers under 200 words unless a topic genuinely needs more.
+
+KNOWLEDGE BASE:
+${KNOWLEDGE_BASE}
+
+Student's question: ${msg}`
+
 try {
-const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-method: "POST", headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ contents: [{ parts: [{ text: `You are a friendly real estate exam prep tutor. Be concise and helpful. Student asks: ${msg}` }] }] })
-})
+const res = await fetch(
+`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+{
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ contents: [{ parts: [{ text: groundedPrompt }] }] })
+}
+)
 const data = await res.json()
-const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Try again!"
+const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Something went wrong — please try again."
 setMessages(p => [...p, { role: "assistant", text: reply }])
-} catch { setMessages(p => [...p, { role: "assistant", text: "Error — check your API key." }]) }
+} catch {
+setMessages(p => [...p, { role: "assistant", text: "Connection error. Please check your API key and try again." }])
+}
 setLoading(false)
 }
 
@@ -412,8 +756,8 @@ if (showKey) return (
 <div className="section">
 <h2 className="gradient-text">AI Tutor Setup</h2>
 <div className="dark-card">
-<p className="muted-text mb16">Enter your Google Gemini API key to enable the AI tutor.</p>
-<p className="muted-text mb16">Get a free key at <strong className="emerald-text">aistudio.google.com</strong></p>
+<p className="muted-text mb16">Enter your free Google Gemini API key to enable the AI tutor.</p>
+<p className="muted-text mb16">Get one free at <strong className="emerald-text">aistudio.google.com</strong></p>
 <input className="search-input" type="password" placeholder="AIza..." value={apiKey} onChange={e => setApiKey(e.target.value)} />
 <button className="btn btn-gradient mt16" onClick={saveKey}>Save & Enable Tutor</button>
 </div>
@@ -426,17 +770,33 @@ return (
 <h2 className="gradient-text">AI Tutor</h2>
 <button className="btn-ghost-sm" onClick={() => setShowKey(true)}>Change Key</button>
 </div>
+
+<div className="quick-prompts">
+{QUICK_PROMPTS.map((p, i) => (
+<button key={i} className="quick-prompt-btn" onClick={() => send(p)}>{p}</button>
+))}
+</div>
+
 <div className="messages">
 {messages.map((m, i) => (
-<div key={i} className={`message ${m.role}`}><div className="bubble">{m.text}</div></div>
+<div key={i} className={`message ${m.role}`}>
+<div className="bubble">{m.text}</div>
+</div>
 ))}
 {loading && <div className="message assistant"><div className="bubble loading">Thinking...</div></div>}
+<div ref={messagesEndRef} />
 </div>
+
 <div className="chat-row">
-<input className="chat-input" placeholder="Ask anything..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} />
-<button className="btn btn-gradient" onClick={send} disabled={loading}>Send</button>
+<input
+className="chat-input"
+placeholder="Ask anything about real estate..."
+value={input}
+onChange={e => setInput(e.target.value)}
+onKeyDown={e => e.key === "Enter" && send()}
+/>
+<button className="btn btn-gradient" onClick={() => send()} disabled={loading}>Send</button>
 </div>
 </div>
 )
 }
-
