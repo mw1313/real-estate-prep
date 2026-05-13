@@ -620,7 +620,7 @@ return (
 </nav>
 
 <main className="main">
-{tab === "dashboard" && <Dashboard xp={xp} streak={streak} level={level} xpForLevel={xpForLevel} achievements={achievements} cardsStudied={cardsStudied} totalAnswered={totalAnswered} />}
+{tab === "dashboard" && <Dashboard xp={xp} streak={streak} level={level} xpForLevel={xpForLevel} achievements={achievements} cardsStudied={cardsStudied} totalAnswered={totalAnswered} setTab={setTab} />}
 {tab === "flashcards" && <Flashcards addXP={addXP} unlockAchievement={unlockAchievement} cardsStudied={cardsStudied} setCardsStudied={setCardsStudied} />}
 {tab === "quiz" && <Quiz addXP={addXP} unlockAchievement={unlockAchievement} totalAnswered={totalAnswered} setTotalAnswered={setTotalAnswered} />}
 {tab === "formulas" && <Formulas unlockAchievement={unlockAchievement} formulasViewed={formulasViewed} setFormulasViewed={setFormulasViewed} />}
@@ -631,14 +631,14 @@ return (
 )
 }
 
-function Dashboard({ xp, streak, level, xpForLevel, achievements, cardsStudied, totalAnswered }) {
+function Dashboard({ xp, streak, level, xpForLevel, achievements, cardsStudied, totalAnswered, setTab })  {
 return (
 <div className="dashboard">
 <div className="welcome-card">
 <div className="welcome-badge"><span className="pulse-dot" />Study Session Active</div>
 <h1 className="gradient-text">Welcome back, Megan!</h1>
 <p className="welcome-sub">You are on your way to passing that real estate exam. Keep going!</p>
-</div>
+<button className="btn btn-gradient" onClick={()=> setTab("flashcards")}>Start Studying</button></div>
 
 <div className="stats-grid">
 <div className="stat-card blue"><div className="stat-icon-wrap">⚡</div><div className="stat-val">{xp}</div><div className="stat-lbl">Total XP</div></div>
