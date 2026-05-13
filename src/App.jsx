@@ -497,7 +497,7 @@ return (
 <div className="stats-grid">
 <div className="stat-card blue"><div className="stat-icon-wrap">⚡</div><div className="stat-val">{xp}</div><div className="stat-lbl">Total XP</div></div>
 <div className="stat-card emerald"><div className="stat-icon-wrap">🏆</div><div className="stat-val">{level}</div><div className="stat-lbl">Level</div></div>
-<div className="stat-card red"><div className="stat-icon-wrap"><img src="/fire3dicon.png" width {32} height={32} alt="" /></div><div className="stat-val">{streak}</div><div className="stat-lbl">Day Streak</div></div>
+<div className="stat-card red"><div className="stat-icon-wrap"><img src="🔥</div><div className="stat-val">{streak}</div><div className="stat-lbl">Day Streak</div></div>
 <div className="stat-card blue"><div className="stat-icon-wrap">🃏</div><div className="stat-val">{cardsStudied}</div><div className="stat-lbl">Cards Studied</div></div>
 </div>
 
