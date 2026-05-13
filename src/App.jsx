@@ -641,8 +641,7 @@ return (
 <button className="btn btn-gradient" onClick={()=> setTab("flashcards")}>Start Studying</button></div>
 
 <div className="stats-grid">
-<div className="stat-card blue"><div className="stat-icon-wrap" style={{ fontSize: "1.8rem" }}>⚡</div><div className="stat-val" style={{ fontSize: "2rem" }}>{xp}</div><div className="stat-lbl">Total XP</div></div>
-<div className="stat-card emerald"><div className="stat-icon-wrap" style={{ fontSize: "1.8rem" }}>🏆</div><div className="stat-val" style={{ fontSize: "2rem" }}>{level}</div><div className="stat-lbl">Level</div></div>
+style={{ fontSize: "1.8rem", marginBottom: 6 }}⚡<div className="stat-card emerald"><div className="stat-icon-wrap" style={{ fontSize: "1.8rem" }}>🏆</div><div className="stat-val" style={{ fontSize: "2rem" }}>{level}</div><div className="stat-lbl">Level</div></div>
 <div className="stat-card red"><div className="stat-icon-wrap" style={{ fontSize: "1.8rem" }}>🔥</div><div className="stat-val" style={{ fontSize: "2rem" }}>{streak}</div><div className="stat-lbl">Day Streak</div></div>
 <div className="stat-card blue"><div className="stat-icon-wrap" style={{ fontSize: "1.8rem" }}>🃏</div><div className="stat-val" style={{ fontSize: "2rem" }}>{cardsStudied}</div><div className="stat-lbl">Cards Studied</div></div>
 </div>
